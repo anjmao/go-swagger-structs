@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 	"unicode"
@@ -116,13 +117,21 @@ func (m *modelsMapper) toFieldType(prop *swagger.Property, required bool) string
 func (m *modelsMapper) toGoModelFields(requiredFields []string, props swagger.Properties) []*goModelField {
 	var out []*goModelField
 
-	for name, prop := range props {
-		typ := m.toFieldType(prop, m.isRequiredField(requiredFields, name))
+	// Sort map keys to ensure ordered access.
+	var propKeys []string
+	for key := range props {
+		propKeys = append(propKeys, key)
+	}
+	sort.Strings(propKeys)
+
+	for _, key := range propKeys {
+		prop := props[key]
+		typ := m.toFieldType(prop, m.isRequiredField(requiredFields, key))
 		field := &goModelField{
-			Name:             m.toGoPublicFieldName(name),
+			Name:             m.toGoPublicFieldName(key),
 			TypeName:         typ,
-			Tags:             fmt.Sprintf("`json:\"%s,omitempty\"`", name),
-			swaggerFieldName: name,
+			Tags:             fmt.Sprintf("`json:\"%s,omitempty\"`", key),
+			swaggerFieldName: key,
 		}
 		out = append(out, field)
 	}
@@ -146,10 +155,18 @@ func (m *modelsMapper) toGoModelName(name string) string {
 func (m *modelsMapper) goModels() []*goModel {
 	var out []*goModel
 
-	for name, def := range m.defs {
+	// Sort map keys to ensure ordered access.
+	var defKeys []string
+	for key := range m.defs {
+		defKeys = append(defKeys, key)
+	}
+	sort.Strings(defKeys)
+
+	for _, key := range defKeys {
+		def := m.defs[key]
 		fields := m.toGoModelFields(def.Required, def.Properties)
 		model := &goModel{
-			Name:   m.toGoModelName(name),
+			Name:   m.toGoModelName(key),
 			Fields: fields,
 		}
 		out = append(out, model)
