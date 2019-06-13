@@ -1,6 +1,8 @@
 # go-swagger-structs
 Generate go models (structs) from swagger definition.
 
+## Difference between go-swagger
+
 ## Usage
 
 ```

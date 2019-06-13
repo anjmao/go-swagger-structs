@@ -20,16 +20,41 @@ import (
 )
 
 var (
-	outDir = flag.String("output", "./models", "Output file (Eg. ./models)")
-	source = flag.String("source", "swagger.json", "Input source as a filename or http url")
+	outDir  = flag.String("output", "./models", "Output file (Eg. ./models)")
+	std     = flag.Bool("std", false, "Write to Stdout instead of file")
+	source  = flag.String("source", "swagger.json", "Input source as a filename or http url")
+	help    = flag.Bool("help", false, "Show help")
+	version = flag.Bool("version", false, "Print version")
 )
+
+var Version = "0.0.3"
 
 const (
 	outFileName = "models.go"
+	usageStr    = `
+Usage: go-swagger-structs [options]
+Options:
+	--output <path>				Write models to path (e.g --output ./here/models).
+	--std					Print to Stdout instead of file.
+	--source <url>				Swagger source url. Could be local file or http(s) url.
+Other options:
+	--help                      Print help
+	--version                   Print version
+`
 )
 
 func main() {
 	flag.Parse()
+
+	if *version {
+		fmt.Println(Version)
+		os.Exit(0)
+	}
+
+	if *help {
+		fmt.Printf("%s\n", usageStr)
+		os.Exit(0)
+	}
 
 	spec, err := fetchSpec(*source)
 	if err != nil {
@@ -50,9 +75,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Write output to file.
-	if err := writeOutput(outBytes, *outDir); err != nil {
-		log.Fatal(err)
+	// Write output.
+	if *std {
+		if err := writeToStdout(outBytes); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		if err := writeToFile(outBytes, *outDir); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -239,16 +270,21 @@ type {{.Name}} struct {
 	return tmpl.Execute(writer, model)
 }
 
-func writeOutput(b []byte, path string) error {
+func writeToFile(data []byte, path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		if err := os.Mkdir(path, os.ModePerm); err != nil {
 			return fmt.Errorf("could not create output directory: %v", err)
 		}
 	}
-	if err := ioutil.WriteFile(filepath.Join(path, outFileName), b, os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(path, outFileName), data, os.ModePerm); err != nil {
 		return fmt.Errorf("could not write output file: %v", err)
 	}
 	return nil
+}
+
+func writeToStdout(data []byte) error {
+	_, err := fmt.Fprint(os.Stdout, string(data))
+	return err
 }
 
 func fetchSpec(source string) (*swagger.Spec, error) {
