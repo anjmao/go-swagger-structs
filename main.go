@@ -58,7 +58,7 @@ func main() {
 
 	spec, err := fetchSpec(*source)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("cannot fetch swagger spec: %v", err)
 	}
 
 	mapper := &modelsMapper{defs: spec.Definitions}
@@ -72,7 +72,7 @@ func main() {
 	// Format output bytes with gofmt.
 	outBytes, err := format.Source(buf.Bytes())
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("could not format output: %v", err)
 	}
 
 	// Write output.
